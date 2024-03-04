@@ -12,8 +12,6 @@ from langchain.memory import ConversationBufferWindowMemory, AstraDBChatMessageH
 from langchain.schema import HumanMessage, AIMessage
 from langchain.schema.runnable import RunnableMap
 from langchain.callbacks.base import BaseCallbackHandler
-#from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-
 
 import streamlit as st
 
@@ -22,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
-ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT"]
+ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT_BO"]
 ASTRA_DB_KEYSPACE = "blueillusion"
 ASTRA_DB_COLLECTION = "catalogue"
 
@@ -33,6 +31,7 @@ AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
 
 os.environ["LANGCHAIN_PROJECT"] = "blueillusion"
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
+
 
 print("Started")
 

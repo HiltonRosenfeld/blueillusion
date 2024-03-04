@@ -1,12 +1,5 @@
 streamlit
-#openai
-#langchain
-#langchain-community
-#langchain-openai
 python-dotenv
-#astrapy
 ragstack-ai
 beautifulsoup4
-#cohere
 boto3
-
