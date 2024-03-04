@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
-ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT_BO"]
+ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT"]
 ASTRA_DB_KEYSPACE = "blueillusion"
 ASTRA_DB_COLLECTION = "catalogue"
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
