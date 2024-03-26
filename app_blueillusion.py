@@ -3,9 +3,8 @@ from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import BedrockChat
-#from langchain_openai import OpenAIEmbeddings
-from langchain_community.embeddings import BedrockEmbeddings
-
+from langchain_openai import OpenAIEmbeddings
+#from langchain_community.embeddings import BedrockEmbeddings
 from langchain_community.vectorstores.astradb import AstraDB
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.memory import ConversationBufferWindowMemory, AstraDBChatMessageHistory
@@ -77,9 +76,9 @@ global memory
 def load_embedding():
     print("load_embedding")
     # Get the OpenAI Embedding
-    #return OpenAIEmbeddings(model="text-embedding-3-small")
+    return OpenAIEmbeddings()
     # Get the Bedrock Embedding
-    return BedrockEmbeddings(credentials_profile_name="default", region_name="us-east-1")
+    #return BedrockEmbeddings(credentials_profile_name="default", region_name="us-east-1")
 
     
 
@@ -159,19 +158,18 @@ def load_memory():
 #Include the price of the product if found in the context.
 #Do not include images in your response.
 #Provide at most 2 items that are relevant to the user's question.
-#You prefer to use bulletpoints to summarize.
-#You can also ask clarifying questions if you need more information to answer the user's question.
-
 @st.cache_data()
 def load_prompt():
     print("load_prompt")
-    template = """You're a helpful fashion assistant tasked to help users shopping for clothes and accessories. 
-You like to help a user find the perfect outfit for a special occasion. 
+    template = """You're a helpful fashion assistant tasked to help users shopping for clothes, shoes and accessories. 
+You like to help a user find the perfect outfit for a special occasion.
 You should also suggest other items to complete the outfit.
-You're friendly and you answer extensively with multiple sentences. 
+You're friendly and you answer extensively with multiple sentences.
+You prefer to use bulletpoints to summarize.
 Focus on the user's needs and provide the best possible answer.
+Prompt the user with clarifying questions so that you know at least for what occassion they are shopping and their age group.
 Do not include any information other than what is provied in the context below.
-Include an image of the product taken from the img attribute in the metadata (without a label).
+Include an image of the product taken from the img attribute in the metadata.
 Include a link to buy each item you recommend if found in the context. Here is a sample buy link:
 Buy Now: [Product Name](https://www.blueillusion.com/product-name)
 If you don't know the answer, just say 'I do not know the answer'.
@@ -204,9 +202,10 @@ if "messages" not in st.session_state:
 ############
 ### Main ###
 ############
+st.set_page_config(initial_sidebar_state="collapsed")
 
 # Write the welcome text
-st.markdown(Path('welcome.md').read_text())
+#st.markdown(Path('welcome.md').read_text())
 
 # DataStax logo
 with st.sidebar:
@@ -236,8 +235,8 @@ with st.sidebar:
     # Add a drop down to choose the LLM model
     st.caption('Choose the LLM model')
     model_id = st.selectbox('Model', [
-        'openai.gpt-3.5',
         'openai.gpt-4',
+        'openai.gpt-3.5',
         'amazon.titan-text-express-v1',
         'anthropic.claude-v2', 
         'ai21.j2-mid-v1', 
@@ -253,7 +252,7 @@ for message in st.session_state.messages:
     st.chat_message(message.type).markdown(message.content)
 
 # Now get a prompt from a user
-if question := st.chat_input("What's up?"):
+if question := st.chat_input("How can I help you?"):
     print(f"Got question: \"{question}\"")
 
     # Add the prompt to messages, stored in session state
