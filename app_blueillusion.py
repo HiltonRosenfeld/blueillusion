@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
+import boto3
 
 from langchain_openai import ChatOpenAI
-from langchain_community.chat_models import BedrockChat
+from langchain_community.chat_models.bedrock import BedrockChat
 from langchain_openai import OpenAIEmbeddings
 #from langchain_community.embeddings import BedrockEmbeddings
 from langchain_community.vectorstores.astradb import AstraDB
@@ -15,18 +16,40 @@ from langchain.callbacks.base import BaseCallbackHandler
 import streamlit as st
 
 from dotenv import load_dotenv
-
 load_dotenv()
 
-ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
-ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT"]
+# Load the environment variables,from either Streamlit Secrets or .env file
+# After loading then insert into environment using os.environ
+# Keyspace and Collection are set here in the code.
+# If using LangChain, set LANGCHAIN_TRACING_V2 to 'true'
+
+LOCAL_SECRETS = True
+
+# If running locally, then use .env file, or use local Streamlit Secrets
+if LOCAL_SECRETS:
+    ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
+    ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT"]
+    OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+    AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
+    AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
+    AWS_DEFAULT_REGION = os.environ["AWS_DEFAULT_REGION"]
+
+# If running in Streamlit, then use Streamlit Secrets
+else:
+    ASTRA_DB_APPLICATION_TOKEN = st.secrets["ASTRA_DB_APPLICATION_TOKEN"]
+    ASTRA_VECTOR_ENDPOINT = st.secrets["ASTRA_VECTOR_ENDPOINT"]
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+    AWS_ACCESS_KEY_ID = st.secrets["AWS_ACCESS_KEY_ID"]
+    AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
+    AWS_DEFAULT_REGION = st.secrets["AWS_DEFAULT_REGION"]
+
+
+os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
+os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
+os.environ["AWS_DEFAULT_REGION"] = AWS_DEFAULT_REGION
+
 ASTRA_DB_KEYSPACE = "blueillusion"
 ASTRA_DB_COLLECTION = "catalogue"
-
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-
-AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
-AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
 
 os.environ["LANGCHAIN_PROJECT"] = "blueillusion"
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -67,9 +90,72 @@ global chat_history
 global memory
 
 
+#############
+### Login ###
+#############
+# Close off the app using a password
+def check_password():
+    """Returns `True` if the user had a correct password."""
+
+    def login_form():
+        """Form with widgets to collect user information"""
+        with st.form("credentials"):
+            st.caption('Using a unique name will keep your content seperate from other users.')
+            st.text_input('Username', key='username')
+            #st.text_input('Password', type='password', key='password')
+            st.form_submit_button('Login', on_click=password_entered)
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        #if st.session_state['username'] in st.secrets['passwords'] and hmac.compare_digest(st.session_state['password'], st.secrets.passwords[st.session_state['username']]):
+        if len(st.session_state['username']) > 5:
+            st.session_state['password_correct'] = True
+            st.session_state.user = st.session_state['username']
+            #del st.session_state['password']  # Don't store the password.
+        else:
+            st.session_state['password_correct'] = False
+
+    # Return True if the username + password is validated.
+    if st.session_state.get('password_correct', False):
+        return True
+
+    # Show inputs for username + password.
+    login_form()
+    if "password_correct" in st.session_state:
+        st.error('😕 Username must be 6 or more characters')
+    return False
+
+def logout():
+    del st.session_state.password_correct
+    del st.session_state.user
+    del st.session_state.messages
+    load_chat_history.clear()
+    load_memory.clear()
+    load_retriever.clear()
+    
+
+# Check for username/password and set the username accordingly
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+
+username = st.session_state.user
+
+
+
 #######################
 ### Resources Cache ###
 #######################
+
+# Cache boto3 session for future runs
+@st.cache_resource(show_spinner='Getting the Boto Session...')
+def load_boto_client():
+    print("load_boto_client")
+    session = boto3.Session(
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_DEFAULT_REGION
+    )
+    return boto3.client("bedrock-runtime")
 
 # Cache OpenAI Embedding for future runs
 @st.cache_resource(show_spinner='Getting the Embedding Model...')
@@ -77,6 +163,7 @@ def load_embedding():
     print("load_embedding")
     # Get the OpenAI Embedding
     return OpenAIEmbeddings()
+    # Bedrock Option - if we want use Bedroick fro emebeddings
     # Get the Bedrock Embedding
     #return BedrockEmbeddings(credentials_profile_name="default", region_name="us-east-1")
 
@@ -122,20 +209,20 @@ def load_model(model_id="openai.gpt-3.5"):
             )
     # else use Bedrock model
     return BedrockChat(
-        credentials_profile_name="default",
-        region_name="us-east-1",
+        #credentials_profile_name="default",  # we are using the boto3 client instead
+        #region_name="us-east-1",             # we are using the boto3 client instead
+        client=bedrock_runtime,
         model_id=model_id,
         streaming=True,
-        #callbacks=[StreamingStdOutCallbackHandler()],
-        model_kwargs={"temperature": 0.1},
+        model_kwargs={"temperature": 0.2},
     )
 
 # Cache Chat History for future runs
 @st.cache_resource(show_spinner='Getting the Message History from Astra DB...')
-def load_chat_history():
+def load_chat_history(username):
     print("load_chat_history")
     return AstraDBChatMessageHistory(
-        session_id=ASTRA_DB_COLLECTION,
+        session_id=username,
         token=ASTRA_DB_APPLICATION_TOKEN,
         api_endpoint=ASTRA_VECTOR_ENDPOINT,
         namespace=ASTRA_DB_KEYSPACE,
@@ -155,25 +242,26 @@ def load_memory():
 
 # Cache prompt
 # 
-#Include the price of the product if found in the context.
 #Do not include images in your response.
 #Provide at most 2 items that are relevant to the user's question.
+#You're friendly and you answer extensively with multiple sentences.
+#You prefer to use bulletpoints to summarize.
+#Focus on the user's needs and provide the best possible answer.
+
 @st.cache_data()
 def load_prompt():
     print("load_prompt")
     template = """You're a helpful fashion assistant tasked to help users shopping for clothes, shoes and accessories. 
 You like to help a user find the perfect outfit for a special occasion.
 You should also suggest other items to complete the outfit.
-You're friendly and you answer extensively with multiple sentences.
-You prefer to use bulletpoints to summarize.
-Focus on the user's needs and provide the best possible answer.
 Prompt the user with clarifying questions so that you know at least for what occassion they are shopping and their age group.
 Do not include any information other than what is provied in the context below.
 Include an image of the product taken from the img attribute in the metadata.
+Include the price of the product if found in the context.
 Include a link to buy each item you recommend if found in the context. Here is a sample buy link:
 Buy Now: [Product Name](https://www.blueillusion.com/product-name)
 If you don't know the answer, just say 'I do not know the answer'.
-If the user has not asked a question related to clothing and Blue Illusion products, you can respond with 'I do not know the answer' as well.
+If the user has not asked a question related to clothing and Blue Illusion products, you can respond with 'I do not have the products you asked for' and suggest a simialr alternative from BlueIllusion context.
 
 Use the following context to answer the question:
 {context}
@@ -212,13 +300,18 @@ with st.sidebar:
     st.image('./public/logo.svg')
     st.text('')
 
+# Logout button
+with st.sidebar:
+    st.button(f"Logout '{username}'", on_click=logout)
+
 # Initialize
 with st.sidebar:
+    bedrock_runtime = load_boto_client()
     embedding = load_embedding()
-    #model = load_model()
+    #model = load_model()  # the model is loaded in the sidebar "model selection"
     vectorstore = load_vectorstore()
     retriever = load_retriever()
-    chat_history = load_chat_history()
+    chat_history = load_chat_history(username)
     memory = load_memory()
     prompt = load_prompt()
 
@@ -231,16 +324,16 @@ with st.sidebar:
             with st.spinner('Delete chat history'):
                 memory.clear()
 
+# Add a drop down to choose the LLM model
 with st.sidebar:
-    # Add a drop down to choose the LLM model
     st.caption('Choose the LLM model')
     model_id = st.selectbox('Model', [
         'openai.gpt-4',
         'openai.gpt-3.5',
-        'amazon.titan-text-express-v1',
-        'anthropic.claude-v2', 
-        'ai21.j2-mid-v1', 
+        'meta.llama2-70b-chat-v1',
         'meta.llama2-13b-chat-v1',
+        'amazon.titan-text-express-v1',
+        #'anthropic.claude-v2', # Claude is not working using this code.
         ])
     model = load_model(model_id)
 
@@ -283,7 +376,7 @@ if question := st.chat_input("How can I help you?"):
         print(f"Using chain: {chain}")
 
         # Call the chain and stream the results into the UI
-        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)]})
+        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)], "tags": [username]})
         print(f"Response: {response}")
         #print(embedding.embed_query(question))
         content = response.content
