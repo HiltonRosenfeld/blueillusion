@@ -18,38 +18,42 @@ Demo Features:
 
 ## Setup to run your own instance
 
-### 1. Pre-requisites
-
-### 2. Astra DB
+### 1. Astra DB
 
 1. Create a new or select an existing Astra Keyspace to hold the vector catalogue and the conversation history.
 2. Get your Astra DB Token
 3. Get your Astra DB API Endpoint
 
-### 3. Load Data
-The shoppiong catalogue has already been crawled from the webiste and is held in the pickle file website_data.pkl. That file must be read and stored into the vector database, along with embeddings. The Jupyter notebook `embed.ipynb` manages that process, with the ability to start from crawling the website, or to start with the included Pickle file.
+### 2. Load Data
+The shopping catalogue has already been crawled from the website and is held in the pickle file website_data.pkl. That file must be read and stored into the vector database, along with embeddings. The Jupyter notebook `embed.ipynb` manages that process, with the ability to start from crawling the website, or to start with the included Pickle file.
 
 #### Process included Pickle file
 
 1. Run the Jupyter notebook from section **Create the Vector Store**
 
-### 4. Prepare Streamlit
+### 3. Prepare Streamlit
 
 1. Create Streamlit Secrets
 The following attributes must be provided in your secrets.toml.
 [See Streamlit docs fro more help](https://docs.streamlit.io/develop/concepts/connections/secrets-management)
 
-    - ASTRA_VECTOR_ENDPOINT
-    - AWS_ACCESS_KEY_ID
-    - AWS_SECRET_ACCESS_KEY
-    - AWS_DEFAULT_REGION
+    - For Astra DB:
+        - ASTRA_VECTOR_ENDPOINT
+        - ASTRA_DB_APPLICATION_TOKEN
 
-    If you want to use LangSmith, then these are also required:
+    - For use with OpenAI:
+        - OPENAI_API_KEY
 
-    - LANGCHAIN_ENDPOINT
-    - LANGCHAIN_API_KEY
+    - For use with Amazon Bedrock:
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+        - AWS_DEFAULT_REGION
 
-### 5. Run the app
+    - For LangSmith:
+        - LANGCHAIN_ENDPOINT
+        - LANGCHAIN_API_KEY
+
+### 4. Run the app
 
     `streamlit run app_blueillusion.py`
 
