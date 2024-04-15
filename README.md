@@ -48,7 +48,7 @@ You have the choice of storing your keys in a `.env` file or in Streamlit Secret
 
 ### 4. Run the app
 
-    `streamlit run app_blueillusion.py`
+    streamlit run app_blueillusion.py
 
 
 
