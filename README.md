@@ -31,27 +31,20 @@ The shopping catalogue has already been crawled from the website and is held in 
 
 1. Run the Jupyter notebook from section **Create the Vector Store**
 
-### 3. Prepare Streamlit
+### 3. Secrets and Keys
+You have the choice of storing your keys in a `.env` file or in Streamlit Secrets. The format of each is the same.
 
-1. Create Streamlit Secrets
-The following attributes must be provided in your secrets.toml.
-[See Streamlit docs fro more help](https://docs.streamlit.io/develop/concepts/connections/secrets-management)
+1. .env file
 
-    - For Astra DB:
-        - ASTRA_VECTOR_ENDPOINT
-        - ASTRA_DB_APPLICATION_TOKEN
+    1. Copy the `.env.sample` file to `.env`
+    2. Provide your keys for the relevant attributes in the file
+    3. Set `LOCAL_SECRETS = True` in the app file `app_blueillusion.py`
 
-    - For use with OpenAI:
-        - OPENAI_API_KEY
+2. Streamlit secrets
 
-    - For use with Amazon Bedrock:
-        - AWS_ACCESS_KEY_ID
-        - AWS_SECRET_ACCESS_KEY
-        - AWS_DEFAULT_REGION
-
-    - For LangSmith:
-        - LANGCHAIN_ENDPOINT
-        - LANGCHAIN_API_KEY
+    1. Copy the `.env.sample` file to your streamlit secrets.toml. [See Streamlit docs fro more help](https://docs.streamlit.io/develop/concepts/connections/secrets-management)
+    2. Provide your keys for the relevant attributes in the file
+    3. Set `LOCAL_SECRETS = False` in the app file `app_blueillusion.py`
 
 ### 4. Run the app
 
