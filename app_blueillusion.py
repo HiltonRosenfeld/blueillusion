@@ -23,7 +23,7 @@ load_dotenv()
 # Keyspace and Collection are set here in the code.
 # If using LangChain, set LANGCHAIN_TRACING_V2 to 'true'
 
-LOCAL_SECRETS = True
+LOCAL_SECRETS = False
 
 # If running locally, then use .env file, or use local Streamlit Secrets
 if LOCAL_SECRETS:
