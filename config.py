@@ -4,7 +4,7 @@ class Config:
     ASTRA_DB_COLLECTION = "catalogue_img_desc"
 
     EMBEDDING_MODEL = "text-embedding-3-small"
-    VISION_MODEL = "gpt-4-turbo"
+    VISION_MODEL = "gpt-4o"
     MAX_TOKENS = 300
     DETAIL = "high"
 

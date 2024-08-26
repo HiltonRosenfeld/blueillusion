@@ -193,14 +193,11 @@ def load_retriever():
 
 # Cache Chat Model for future runs
 @st.cache_resource(show_spinner='Getting the Chat Model...')
-def load_model(model_id="openai.gpt-3.5"):
+def load_model(model_id="openai.gpt-4o"):
     print(f"load_model: {model_id}")
     # if model_id contains 'openai' then use OpenAI model
     if 'openai' in model_id:
-        if '3.5' in model_id:
-            gpt_version = 'gpt-3.5-turbo'
-        else:
-            gpt_version = 'gpt-4-turbo-preview'
+        gpt_version = model_id.replace('openai.', '')
         return ChatOpenAI(
             temperature=0.2,
             model=gpt_version,
@@ -328,8 +325,11 @@ with st.sidebar:
 with st.sidebar:
     st.caption('Choose the LLM model')
     model_id = st.selectbox('Model', [
+        'openai.gpt-4o',
+        'openai.gpt-4o-mini',
+        'openai.gpt-4-turbo',
         'openai.gpt-4',
-        'openai.gpt-3.5',
+        'openai.gpt-3.5-turbo',
         'meta.llama2-70b-chat-v1',
         'meta.llama2-13b-chat-v1',
         'amazon.titan-text-express-v1',
